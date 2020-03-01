@@ -39,7 +39,7 @@ queue *buildlist(char *filename)
 	int yvalue = 0;
 	//node *tree;
 	//node *top;
-	queue *head;
+	queue *head = NULL;
 
 	while((value = fgetc(fp)) != EOF)
 	{
