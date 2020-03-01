@@ -33,8 +33,8 @@ queue *insertqueue(queue *head, int xvalue, int yvalue, char value)
 queue *buildlist(char *filename)
 {
 	FILE *fp = fopen(filename,"r");
-	char value;
-	char tempvalue;
+	char value = 0;
+	char tempvalue = 0;
 	int xvalue = 0;
 	int yvalue = 0;
 	//node *tree;
