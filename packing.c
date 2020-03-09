@@ -6,7 +6,7 @@
 #include "packing.h"
 
 
-queue *buildqueue(int xvalue, int yvalue, char value)
+queue *buildqueue(int xvalue, int yvalue, int value, bool isleaf)
 {
 	queue *p = malloc(sizeof(queue));
 	p->data = malloc(sizeof(node));
@@ -17,40 +17,72 @@ queue *buildqueue(int xvalue, int yvalue, char value)
 	p->data->xcor = 0;
 	p->data->ycor = 0;
 	p->data->value = value;
+	p->data->isleaf = isleaf;
 	p->next = NULL;
 
 	return p;
 }
 
-queue *insertqueue(queue *head, int xvalue, int yvalue, char value)
+queue *insertqueue(queue *head, int xvalue, int yvalue, int value, bool isleaf)
 {
-	queue *p = buildqueue(xvalue, yvalue, value);
+	queue *p = buildqueue(xvalue, yvalue, value, isleaf);
 	p->next = head;
 
 	return p;
 }
 
-queue *buildlist(char *filename)
+queue *buildlist(char *filename)/////use fgetc less than 10
 {
 	FILE *fp = fopen(filename,"r");
-	char value = 0;
-	char tempvalue = 0;
+	if(fp == NULL)
+	{
+		return NULL;
+	}
+	int value = 0;
+	//int tempvalue = 0;
 	int xvalue = 0;
 	int yvalue = 0;
 	//node *tree;
 	//node *top;
 	queue *head = NULL;
 
-	while((value = fgetc(fp)) != EOF)
+	while(!feof(fp))
 	{
+		value = fgetc(fp);
 		if(isdigit(value) != 0)
 		{
-			tempvalue = value;
-			value = fgetc(fp);
-			xvalue = fgetc(fp) - '0';
-			value = fgetc(fp);
-			yvalue = fgetc(fp) - '0';
-			head = insertqueue(head, xvalue, yvalue, tempvalue);
+			fseek(fp, -1, SEEK_CUR);
+			fscanf(fp, "%d(%d,%d)\n", &value, &xvalue, &yvalue);
+			//printf("%d(%d,%d)\n",value,xvalue,yvalue);
+			//value = tempvalue;
+			head = insertqueue(head, xvalue, yvalue, value, 1); // 1, is a leaf
+		}else if(isalpha(value) != 0){
+
+			head = insertqueue(head, 0, 0, value, 0);//0 not a leaf
+			//printf("%c\n", value);
+		}
+	}
+	fclose(fp);
+	return head;
+}
+
+/*queue *buildlist(char *filename)
+{
+	FILE *fp = fopen(filename,"r");
+	int value = 0;
+	//char tempvalue = 0;
+	int xvalue = 0;
+	int yvalue = 0;
+	//node *tree;
+	//node *top;
+	queue *head = NULL;
+
+	while(!feof(fp))
+	{
+		fscanf(fp, "%d(%d,%d)\n",&value,&xvalue,&yvalue);
+		if(isdigit(value) != 0)
+		{
+			head = insertqueue(head, xvalue, yvalue, value);
 		}else if(isalpha(value) != 0){
 
 			head = insertqueue(head, 0, 0, value);
@@ -58,7 +90,7 @@ queue *buildlist(char *filename)
 	}
 	fclose(fp);
 	return head;
-}
+}*/
 
 queue *reversequeue(queue *head)
 {
@@ -131,7 +163,7 @@ node *maketree(queue *head)
 
 	while(head->next != NULL)
 	{
-		if((isalpha(temp3->data->value) != 0)&&(temp3->data->left == NULL))
+		if((temp3->data->isleaf == 0)&&(temp3->data->left == NULL))//third one is not leaf
 		{
 			head = merge(head, temp1, temp2, temp3);
 			if(head->next == NULL) break;
@@ -157,9 +189,9 @@ void preorder(node *head, FILE* fp)
 {
 	if(head == NULL) return;
 
-	if(isdigit(head->value) != 0)
+	if(head->isleaf == 1)
 	{
-		fprintf(fp, "%c(%d,%d)\n",head->value, head->xlength, head->ylength);
+		fprintf(fp, "%d(%d,%d)\n",head->value, head->xlength, head->ylength);
 	}else{
 		fprintf(fp, "%c\n", head->value);
 	}
@@ -185,7 +217,11 @@ void inorder(node *head, FILE* fp)
 	inorder(head->left,fp);
 	inorder(head->right,fp);
 
-	fprintf(fp, "%c(%d,%d)\n",head->value, head->xlength, head->ylength);
+	if(head->isleaf == 0) {
+		fprintf(fp, "%c(%d,%d)\n",head->value, head->xlength, head->ylength);
+	}else{
+		fprintf(fp, "%d(%d,%d)\n",head->value, head->xlength, head->ylength);
+	}
 }
 
 
@@ -201,7 +237,7 @@ void output2(node *head, char *filename)
 
 void modifytree(node *head)
 {
-	if(isdigit(head->value) != 0) return;
+	if(head->isleaf) return;
 
 	if(head->value == 'V')
 	{
@@ -226,11 +262,11 @@ void inorder2(node *head, FILE *fp)
 {
 	if(head == NULL) return;
 
-	if(isdigit(head->value) != 0)
+	if(head->isleaf == 1)
 	{
 		//printf("111\n");
-		fprintf(fp, "%c((%d,%d)(%d,%d))\n",head->value, head->xlength, head->ylength, head->xcor, head->ycor );
-
+		//printf("%d((%d,%d)(%d,%d))\n",head->value, head->xlength, head->ylength, head->xcor, head->ycor  );
+		fprintf(fp, "%d((%d,%d)(%d,%d))\n",head->value, head->xlength, head->ylength, head->xcor, head->ycor );
 	}
 
 	inorder2(head->left,fp);

@@ -8,16 +8,25 @@
 
 int main(int argc, char** argv)
 {
+    if(argc != 5)
+    {
+        return EXIT_FAILURE;
+    }
+
     queue *head = buildlist(argv[1]);
+    if(head == NULL)
+    {
+        return EXIT_FAILURE;
+    }
 
     head = reversequeue(head);
 
-    queue *temp = head;
-    while(temp != NULL)
+    //queue *temp = head;
+    /*while(temp != NULL)
     {
         printf("%c(%d,%d)\n",temp->data->value,temp->data->xlength,temp->data->ylength);
         temp = temp->next;
-    }
+    }*/
 
     node *treehead = maketree(head);
 

@@ -2,11 +2,12 @@
 #define __PACKING_H__
 
 typedef struct _Node{
-	char value;
+	int value;
 	int xlength;
 	int ylength;
 	int xcor;
 	int ycor;
+	bool isleaf;
 	struct _Node* left;
 	struct _Node* right;
 }node;
