@@ -5,6 +5,11 @@
 #include <ctype.h>
 #include "packing.h"
 
+typedef struct _list{
+	struct _queue* head;
+	struct _queue* tail;
+
+}list;
 
 queue *buildqueue(int xvalue, int yvalue, int value, bool isleaf)
 {
@@ -44,26 +49,39 @@ queue *buildlist(char *filename)/////use fgetc less than 10
 	int yvalue = 0;
 	//node *tree;
 	//node *top;
-	queue *head = NULL;
+	//queue *head = NULL;
 
-	while(!feof(fp))
+	list control;
+	control.head = NULL;
+	control.tail = NULL;
+
+	while((value=fgetc(fp)) != EOF)
 	{
-		value = fgetc(fp);
+		//value = fgetc(fp);
 		if(isdigit(value) != 0)
 		{
 			fseek(fp, -1, SEEK_CUR);
 			fscanf(fp, "%d(%d,%d)\n", &value, &xvalue, &yvalue);
+			if(control.tail == NULL){//initialize
+				control.head = buildqueue(xvalue,yvalue,value,1);
+				control.tail = control.head;
+			}else{
+				control.tail->next = buildqueue(xvalue,yvalue,value,1);
+				control.tail = control.tail->next;
+			}
 			//printf("%d(%d,%d)\n",value,xvalue,yvalue);
 			//value = tempvalue;
-			head = insertqueue(head, xvalue, yvalue, value, 1); // 1, is a leaf
+			//head = insertqueue(head, xvalue, yvalue, value, 1); // 1, is a leaf
 		}else if(isalpha(value) != 0){
+			control.tail->next = buildqueue(0,0,value,0);//not a leaf
+			control.tail = control.tail->next;
 
-			head = insertqueue(head, 0, 0, value, 0);//0 not a leaf
+			//head = insertqueue(head, 0, 0, value, 0);//0 not a leaf
 			//printf("%c\n", value);
 		}
 	}
 	fclose(fp);
-	return head;
+	return control.head;
 }
 
 /*queue *buildlist(char *filename)
@@ -92,7 +110,7 @@ queue *buildlist(char *filename)/////use fgetc less than 10
 	return head;
 }*/
 
-queue *reversequeue(queue *head)
+/*queue *reversequeue(queue *head)
 {
 	queue *prev = NULL;
 	queue *cur = head;
@@ -106,11 +124,11 @@ queue *reversequeue(queue *head)
 		next = next->next;
 	}
 	return prev;
-}
+}*/
 
 ////////above build queue, all work////////////
 
-queue *merge(queue *head, queue *temp1, queue *temp2, queue *temp3)
+/*queue *merge(queue *head, queue *temp1, queue *temp2, queue *temp3)
 {
 	temp3->data->left = temp1->data;
 	temp3->data->right = temp2->data;
@@ -153,6 +171,24 @@ queue *merge(queue *head, queue *temp1, queue *temp2, queue *temp3)
 
 	return head;
 
+}*/
+
+void merge(queue* dptr, queue* temp1, queue* temp2, queue* temp3)
+{
+	dptr->next = temp3;
+	temp3->data->left = temp1->data;
+	temp3->data->right = temp2->data;
+
+	if(temp3->data->value == 'V')
+	{
+		temp3->data->xlength = temp1->data->xlength + temp2->data->xlength;
+		temp3->data->ylength = temp1->data->ylength>temp2->data->ylength?temp1->data->ylength:temp2->data->ylength;
+	}else{
+		temp3->data->ylength = temp1->data->ylength + temp2->data->ylength;
+		temp3->data->xlength = temp1->data->xlength>temp2->data->xlength?temp1->data->xlength:temp2->data->xlength;
+	}
+	free(temp1);
+	free(temp2);
 }
 
 node *maketree(queue *head)
@@ -161,33 +197,71 @@ node *maketree(queue *head)
 	queue *temp2 = head->next;
 	queue *temp3 = temp2->next;
 
-	while(head->next != NULL)
+	queue dummy;
+	dummy.data = NULL;
+	dummy.next = head;
+	queue *dptr = &dummy;
+
+	while(dummy.next->next != NULL)
 	{
 		if((temp3->data->isleaf == 0)&&(temp3->data->left == NULL))//third one is not leaf
 		{
-			head = merge(head, temp1, temp2, temp3);
-			if(head->next == NULL) break;
-			temp1 = head;
-			temp2 = head->next;
+			merge(dptr, temp1, temp2, temp3);
+			temp1 = dummy.next;
+			temp2 = temp1->next;
+			if(temp2 == NULL) break;
 			temp3 = temp2->next;
+			dptr = &dummy;
 		}else{
 			temp1 = temp1->next;
 			temp2 = temp2->next;
 			temp3 = temp3->next;
+			dptr = dptr->next;
 		}
 	}
-	node *temp = head->data;
-	free(head);
+	dummy.data = dummy.next->data;
+	free(dummy.next);
+	//free(head);
 
-	return temp;
+	return dummy.next->data;
 }
 
 ////////////////above build tree, all worked//////////////
 
 ////////////////first output file below//////////////
+typedef struct _stack{
+	node *data;
+	struct _stack *next;
+}Stack;
+
+void push(Stack **stack, node *address)
+{
+	Stack *head = malloc(sizeof(Stack));
+	head->data = address;
+	head->next = *stack;
+	*stack = head;
+}
+
+node *top(Stack *stack)
+{
+	return stack->data;
+}
+
+void pop(Stack **stack)
+{
+	Stack *temp = *stack;
+	*stack = (*stack)->next;
+	free(temp);
+}
+
+bool isempty(Stack *stack)
+{
+	return !stack;
+}
+
 void preorder(node *head, FILE* fp)
 {
-	if(head == NULL) return;
+	/*if(head == NULL) return;
 
 	if(head->isleaf == 1)
 	{
@@ -196,7 +270,27 @@ void preorder(node *head, FILE* fp)
 		fprintf(fp, "%c\n", head->value);
 	}
 	preorder(head->left,fp);
-	preorder(head->right,fp);
+	preorder(head->right,fp);*/
+	Stack *stack = NULL;
+	node *temp = head;
+	do{
+		while(temp != NULL){
+			if(temp->isleaf == 1){
+				fprintf(fp, "%d(%d,%d)\n",temp->value, temp->xlength, temp->ylength);
+			}else{
+				fprintf(fp, "%c\n", temp->value);
+			}
+			push(&stack, temp);
+			temp = temp->left;
+		}
+		while(!isempty(stack) && temp == top(stack)->right){
+			temp = top(stack);
+			pop(&stack);
+		}
+		if(!isempty(stack)){
+			temp = top(stack)->right;
+		}
+	}while(!isempty(stack));
 }
 
 
@@ -212,7 +306,7 @@ void output1(node *head, char *filename)
 ///////////second output below////////
 void inorder(node *head, FILE* fp)
 {
-	if(head == NULL) return;
+	/*if(head == NULL) return;
 
 	inorder(head->left,fp);
 	inorder(head->right,fp);
@@ -221,7 +315,27 @@ void inorder(node *head, FILE* fp)
 		fprintf(fp, "%c(%d,%d)\n",head->value, head->xlength, head->ylength);
 	}else{
 		fprintf(fp, "%d(%d,%d)\n",head->value, head->xlength, head->ylength);
-	}
+	}*/
+	Stack *stack = NULL;
+	node *temp = head;
+	do{
+		while(temp != NULL){
+			push(&stack, temp);
+			temp = temp->left;
+		}
+		while(!isempty(stack) && temp == top(stack)->right){
+			temp = top(stack);
+			if(temp->isleaf == 0) {
+				fprintf(fp, "%c(%d,%d)\n",temp->value, temp->xlength, temp->ylength);
+			}else{
+				fprintf(fp, "%d(%d,%d)\n",temp->value, temp->xlength, temp->ylength);
+			}
+			pop(&stack);
+		}
+		if(!isempty(stack)){
+			temp = top(stack)->right;
+		}
+	}while(!isempty(stack));
 }
 
 
@@ -237,7 +351,7 @@ void output2(node *head, char *filename)
 
 void modifytree(node *head)
 {
-	if(head->isleaf) return;
+	/*if(head->isleaf) return;
 
 	if(head->value == 'V')
 	{
@@ -255,12 +369,44 @@ void modifytree(node *head)
 	}
 
 	modifytree(head->left);
-	modifytree(head->right);
+	modifytree(head->right);*/
+
+	Stack *stack = NULL;
+	node *temp = head;
+	do{
+		while(temp != NULL){
+			push(&stack, temp);
+			if(!(temp->isleaf)){
+				if(temp->value == 'V')
+				{
+					temp->left->xcor = temp->xcor;
+					temp->left->ycor = temp->ycor;
+					temp->right->xcor = temp->xcor + temp->left->xlength;
+					temp->right->ycor = temp->ycor;
+				}
+				if(temp->value == 'H')
+				{
+					temp->left->ycor = temp->ycor + temp->right->ylength;
+					temp->left->xcor = temp->xcor;
+					temp->right->ycor = temp->ycor;
+					temp->right->xcor = temp->xcor;
+				}
+			}
+			temp = temp->left;
+		}
+		while(!isempty(stack) && temp == top(stack)->right){
+			temp = top(stack);
+			pop(&stack);
+		}
+		if(!isempty(stack)){
+			temp = top(stack)->right;
+		}
+	}while(!isempty(stack));
 }
 
 void inorder2(node *head, FILE *fp)
 {
-	if(head == NULL) return;
+	/*if(head == NULL) return;
 
 	if(head->isleaf == 1)
 	{
@@ -270,7 +416,25 @@ void inorder2(node *head, FILE *fp)
 	}
 
 	inorder2(head->left,fp);
-	inorder2(head->right,fp);
+	inorder2(head->right,fp);*/
+	Stack *stack = NULL;
+	node *temp = head;
+	do{
+		while(temp != NULL){
+			push(&stack, temp);
+			temp = temp->left;
+		}
+		while(!isempty(stack) && temp == top(stack)->right){
+			temp = top(stack);
+			if(temp->isleaf == 1){
+				fprintf(fp, "%d((%d,%d)(%d,%d))\n",temp->value, temp->xlength, temp->ylength, temp->xcor, temp->ycor );
+			}
+			pop(&stack);
+		}
+		if(!isempty(stack)){
+			temp = top(stack)->right;
+		}
+	}while(!isempty(stack));
 }
 
 void output3(node *head, char *filename)
@@ -285,7 +449,7 @@ void output3(node *head, char *filename)
 //////below free the tree/////
 void freetree(node *head)
 {
-	if(!(head->left && head->right))
+	/*if(!(head->left && head->right))
 	{
 		free(head);
 		return;
@@ -294,7 +458,23 @@ void freetree(node *head)
 	freetree(head->left);
 	freetree(head->right);
 
-	free(head);
+	free(head);*/
+	Stack *stack = NULL;
+	node *temp = head;
+	do{
+		while(temp != NULL){
+			push(&stack, temp);
+			temp = temp->left;
+		}
+		while(!isempty(stack) && temp == top(stack)->right){
+			temp = top(stack);
+			pop(&stack);
+			free(temp);
+		}
+		if(!isempty(stack)){
+			temp = top(stack)->right;
+		}
+	}while(!isempty(stack));
 }
 
 
