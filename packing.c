@@ -219,11 +219,11 @@ node *maketree(queue *head)
 			dptr = dptr->next;
 		}
 	}
-	dummy.data = dummy.next->data;
+	node *temp = dummy.next->data;
 	free(dummy.next);
 	//free(head);
 
-	return dummy.next->data;
+	return temp;
 }
 
 ////////////////above build tree, all worked//////////////
@@ -266,7 +266,7 @@ void preorder(node *head, FILE* fp)
 	if(head->isleaf == 1)
 	{
 		fprintf(fp, "%d(%d,%d)\n",head->value, head->xlength, head->ylength);
-	}else{
+	}else{ 
 		fprintf(fp, "%c\n", head->value);
 	}
 	preorder(head->left,fp);
