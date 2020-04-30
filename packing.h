@@ -20,7 +20,7 @@ typedef struct _queue{
 
 queue *buildlist(char *filename);
 
-queue *reversequeue(queue *head);
+//queue *reversequeue(queue *head);
 
 node *maketree(queue *head);
 
