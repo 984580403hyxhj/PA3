@@ -49,15 +49,6 @@ int main(int argc, char** argv)
         return EXIT_FAILURE;
     }
 
-    //head = reversequeue(head);
-
-    /*queue *temp = head;
-    while(temp != NULL)
-    {
-        printf("%d(%d,%d)\n",temp->data->value,temp->data->xlength,temp->data->ylength);
-        temp = temp->next;
-    }*/
-
     node *treehead = maketree(head);
 
     //print2D(treehead);
